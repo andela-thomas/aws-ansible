@@ -1,0 +1,28 @@
+---
+- name: Create Vpc using ansible scripts
+  ec2_vpc:
+    state: present
+    cidr_block: 10.22.0.0/16
+    resource_tags: { "Environment":"Development" }
+    subnets:
+      - cidr: 10.22.1.0/24
+        az: us-west-2c
+        resource_tags: { "Environment":"Dev", "Tier" : "Web" }
+      - cidr: 10.22.2.0/24
+        az: us-west-2b
+        resource_tags: { "Environment":"Dev", "Tier" : "App" }
+      - cidr: 10.22.3.0/24
+        az: us-west-2a
+        resource_tags: { "Environment":"Dev", "Tier" : "DB" }
+    internet_gateway: True
+    route_tables:
+      - subnets:
+          - 10.22.1.0/24
+          - 10.22.2.0/24
+        routes:
+          - dest: 0.0.0.0/0
+            gw: igw
+      - subnets:
+          - 10.22.3.0/24
+    region: us-east-1
+  register: vpc

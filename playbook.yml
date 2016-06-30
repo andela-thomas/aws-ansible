@@ -4,4 +4,4 @@
     connection: local
     gather_facts: no
     roles:
-      - cloudformation
+      - vpc
