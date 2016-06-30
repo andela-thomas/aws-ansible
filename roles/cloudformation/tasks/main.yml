@@ -1,0 +1,36 @@
+# create s3 bucket
+---
+- name: List bucket
+  s3: bucket={{bucket_name}} mode=list
+  ignore_errors: true
+  register: listed
+
+- name: Delete Bucket if exists
+  # Delete a bucket and all contents
+  s3: bucket={{bucket_name}} mode=delete
+  when: listed|success
+  tags:
+    - clean
+
+- name: Launch CloudFormation
+  cloudformation:
+    stack_name: "{{stack_name}}"
+    state: present
+    region: "{{region}}"
+    disable_rollback: false
+    template:  "roles/cloudformation/files/cloudformation-vpc-template.json"
+    tags:
+      Stack: "{{stack_name}}"
+  tags:
+    - cloudformation
+
+- name: Upload static html page to the bucket
+  s3:
+    bucket: "{{bucket_name}}"
+    object: index.html
+    src: /s3/index.html
+    encrypt: true
+    permission: public-read
+    mode: put
+  tags:
+    - site-upload

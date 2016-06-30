@@ -1,0 +1,7 @@
+---
+# major group variables
+bucket_name: thomas-nyambato-s3-web
+vpc_stack: thomas-nyambat-vpc-stack
+key_pair: thomas-devops
+region: us-east-1
+stack_name: thomas-nyambati-cloudformation
