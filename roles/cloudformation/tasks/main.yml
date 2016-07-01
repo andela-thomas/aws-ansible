@@ -12,7 +12,51 @@
   tags:
     - clean
 
-- name: Expand the CloudFormation template for future use.
+- name: Launch an ec2 instance
+  ec2:
+    key_name: "{{key_pair}}"
+    instance_type: "{{instance_type}}"
+    image: "{{ image }}"
+    region: "{{ region }}"
+    wait: yes
+    count: 1
+    volumes:
+      - device_name: /dev/sdb
+        snapshot: snap-695a7a8f
+        volume_type: io1
+        iops: 1000
+        volume_size: 100
+        delete_on_termination: true
+    instance_tags:
+      db: postgres
+  register: ec2
+  tags:
+    - launch_instance
+#
+# create image from the instance
+
+- name: Create Image from the launched Instance
+  ec2_ami:
+    instance_id: "{{ ec2.instance_ids[0] }}"
+    wait: no
+    region: "{{ region }}"
+    name: thomas-nyambati-image
+    tags:
+      service: database
+  register: image
+  tags:
+    - create_image
+
+
+- name: Terminate instances that were previously launched
+  ec2:
+    state: absent
+    region: "{{region}}"
+    instance_ids: "{{ ec2.instance_ids }}"
+  tags:
+    - terminate_instance
+
+- name: Compile template to json.
   local_action: template src={{ template_dir }}/cloudformation-vpc-template.json.j2 dest={{ template_dir }}/cloudformation-vpc-template.json
 
 - name: Launch CloudFormation
@@ -20,7 +64,7 @@
     stack_name: "{{stack_name}}"
     state: present
     region: "{{region}}"
-    disable_rollback: false
+    disable_rollback: true
     template:  "{{ template_dir }}/cloudformation-vpc-template.json"
     tags:
       Stack: "{{stack_name}}"
@@ -28,10 +72,31 @@
     - cloudformation
   register: vpc
 
+- name: Delete CloudFormation
+  cloudformation:
+    stack_name: "{{stack_name}}"
+    state: absent
+    region: "{{region}}"
+  when: cloudformation|failed
+  tags:
+    - remove_formation
+  register: remove_formation
+
 - name: Clean up the local, generated, file
   file:
     name: "{{ template_dir }}/cloudformation-vpc-template.json"
     state: absent
+
+
+
+- name: Deregister the ami
+  ec2_ami:
+    region: " {{ region }}"
+    image_id: "{{ instance.image_id }}"
+    delete_snapshot: True
+    state: absent
+  tags:
+    - deregister_ami
 
 - name: Upload static html page to the bucket
   s3:

@@ -8,13 +8,13 @@
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "AccessControl": "PublicRead",
-        "BucketName": "{{bucket_name}}",
+        "BucketName": "thomas-nyambati-s3-web",
         "WebsiteConfiguration": {
           "IndexDocument": "index.html",
           "ErrorDocument": "error.html"
         }
       },
-      "DeletionPolicy": "{{ deletion_policy}}"
+      "DeletionPolicy": "Retain"
     },
 
     "VPC": {
@@ -94,8 +94,8 @@
     "PrivateInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "InstanceType": "{{instance_type}}",
-        "ImageId": "{{ image.image_id }}",
+        "InstanceType": "t2.micro",
+        "ImageId": "ami-d9ba01ce",
         "NetworkInterfaces": [{
           "AssociatePublicIpAddress": "true",
           "DeviceIndex": "0",
