@@ -4,4 +4,6 @@ bucket_name: thomas-nyambato-s3-web
 vpc_stack: thomas-nyambat-vpc-stack
 key_pair: thomas-devops
 region: us-east-1
+template_dir: roles/cloudformation/files
+deletion_policy: Retain
 stack_name: thomas-nyambati-cloudformation

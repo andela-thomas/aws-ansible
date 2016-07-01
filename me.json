@@ -1,0 +1,37 @@
+ {
+  "changed": true,
+  "igw_id": "igw-162cc172",
+  "subnets": [{
+    "az": "us-west-2c",
+    "cidr": "10.22.1.0/24",
+    "id": "subnet-8871bcd0",
+    "resource_tags": {
+      "Environment": "Dev",
+      "Tier": "App"
+    }
+  }, {
+    "az": "us-west-2b",
+    "cidr": "10.22.2.0/24",
+    "id": "subnet-5f9cff3b",
+    "resource_tags": {
+      "Environment": "Dev",
+      "Tier": "App"
+    }
+  }, {
+    "az": "us-west-2a",
+    "cidr": "10.22.3.0/24",
+    "id": "subnet-1c3e846a",
+    "resource_tags": {
+      "Environment": "Dev",
+      "Tier": "DB"
+    }
+  }],
+  "vpc": {
+    "cidr_block": "10.22.0.0/16",
+    "dhcp_options_id": "dopt-ce47f7ab",
+    "id": "vpc-43ddae27",
+    "region": "us-west-2",
+    "state": "available"
+  },
+  "vpc_id": "vpc-43ddae27"
+ }

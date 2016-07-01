@@ -1,3 +1,0 @@
----
-- name: Create an s3 bucket
-  s3: bucket=newthomasbucket mode=create permission=public-read

@@ -12,17 +12,26 @@
   tags:
     - clean
 
+- name: Expand the CloudFormation template for future use.
+  local_action: template src={{ template_dir }}/cloudformation-vpc-template.json.j2 dest={{ template_dir }}/cloudformation-vpc-template.json
+
 - name: Launch CloudFormation
   cloudformation:
     stack_name: "{{stack_name}}"
     state: present
     region: "{{region}}"
     disable_rollback: false
-    template:  "roles/cloudformation/files/cloudformation-vpc-template.json"
+    template:  "{{ template_dir }}/cloudformation-vpc-template.json"
     tags:
       Stack: "{{stack_name}}"
   tags:
     - cloudformation
+  register: vpc
+
+- name: Clean up the local, generated, file
+  file:
+    name: "{{ template_dir }}/cloudformation-vpc-template.json"
+    state: absent
 
 - name: Upload static html page to the bucket
   s3:

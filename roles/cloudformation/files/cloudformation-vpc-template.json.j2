@@ -8,13 +8,13 @@
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "AccessControl": "PublicRead",
-        "BucketName": "thomas-nyambato-s3-web",
+        "BucketName": "{{bucket_name}}",
         "WebsiteConfiguration": {
           "IndexDocument": "index.html",
           "ErrorDocument": "error.html"
         }
       },
-      "DeletionPolicy": "Retain"
+      "DeletionPolicy": "{{ deletion_policy}}"
     },
 
     "VPC": {
