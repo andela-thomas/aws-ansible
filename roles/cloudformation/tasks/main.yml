@@ -21,12 +21,9 @@
     wait: yes
     count: 1
     volumes:
-      - device_name: /dev/sdb
-        snapshot: snap-695a7a8f
-        volume_type: io1
-        iops: 1000
-        volume_size: 100
-        delete_on_termination: true
+      - device_name: /dev/xvda
+        volume_type: gp2
+        volume_size: 10
     instance_tags:
       db: postgres
   register: ec2
@@ -38,7 +35,7 @@
 - name: Create Image from the launched Instance
   ec2_ami:
     instance_id: "{{ ec2.instance_ids[0] }}"
-    wait: no
+    wait: yes
     region: "{{ region }}"
     name: thomas-nyambati-image
     tags:
@@ -72,22 +69,10 @@
     - cloudformation
   register: vpc
 
-- name: Delete CloudFormation
-  cloudformation:
-    stack_name: "{{stack_name}}"
-    state: absent
-    region: "{{region}}"
-  when: cloudformation|failed
-  tags:
-    - remove_formation
-  register: remove_formation
-
 - name: Clean up the local, generated, file
   file:
     name: "{{ template_dir }}/cloudformation-vpc-template.json"
     state: absent
-
-
 
 - name: Deregister the ami
   ec2_ami:

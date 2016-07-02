@@ -7,5 +7,5 @@ region: us-east-1
 template_dir: roles/cloudformation/files
 deletion_policy: Retain
 instance_type: t2.micro
-image: ami-2638374c
+image: ami-e3e8eb89
 stack_name: thomas-nyambati-cloudformation
