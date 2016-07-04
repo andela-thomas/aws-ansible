@@ -4,6 +4,7 @@ bucket_name: thomas-nyambati-s3-web
 vpc_stack: thomas-nyambat-vpc-stack
 key_pair: thomas-devops
 region: us-east-1
+image_name: thomas-nyambati-image
 template_dir: roles/cloudformation/files
 deletion_policy: Retain
 instance_type: t2.micro
@@ -16,4 +17,4 @@ instances_min_size: 1
 instances_max_size: 2
 cool_down: 60
 auto_scaling_template: roles/auto-scaling-group/files/auto-scaling-group.json
-cidr_block: 10.0.0.30/16
+vpc_cidr_block: 10.0.0.30/16
