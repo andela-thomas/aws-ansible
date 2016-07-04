@@ -1,0 +1,2 @@
+---
+cloudformation_template: roles/cloudformation/templates/cloudformation-template.json

@@ -1,0 +1,261 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "VPC with public and private subnets",
+
+  "Resources": {
+    {% if bucket.failed == false %}
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "PublicRead",
+        "BucketName": "{{ bucket_name }}",
+        "WebsiteConfiguration": {
+          "IndexDocument": "index.html",
+          "ErrorDocument": "error.html"
+        }
+      },
+      "DeletionPolicy": "{{ deletion_policy }}"
+    },
+
+    {% endif %}
+
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "CidrBlock": "{{ vpc_cidr_block }}",
+        "Tags": [
+          { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
+          { "Key": "Network", "Value": "Public" }
+        ]
+      }
+    },
+
+    "PublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.9.30/24",
+        "Tags": [
+          { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
+          { "Key": "Network", "Value": "Public" }
+        ]
+      }
+    },
+
+    "PrivateSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.10.30/24",
+        "Tags": [
+          { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
+          { "Key": "Network", "Value": "Private" }
+        ]
+      }
+    },
+
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway"
+    },
+
+    "GatewayToInternet": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "InternetGatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "GatewayToInternet",
+      "Properties": {
+        "RouteTableId": { "Ref": "PublicRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PublicSubnet" },
+        "RouteTableId": { "Ref": "PublicRouteTable" }
+      }
+    },
+
+    "PrivateInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "{{instance_type}}",
+        "KeyName": "{{ key_pair }}",
+        {% if ami_find.results[0].ami_id %}
+        "ImageId":"{{ ami_find.results[0].ami_id}}",
+        {% elif image.image_id %}
+        "ImageId":"{{ image.image_id}}",
+        {% endif %}
+        "NetworkInterfaces": [{
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "DeleteOnTermination": "true",
+          "SubnetId": { "Ref": "PrivateSubnet" }
+        }]
+      }
+    },
+
+    "NotificationTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [
+          {
+            "Endpoint": "{{ sns_endpoint }}",
+            "Protocol": "{{ protocol }}"
+          }
+        ]
+      }
+    },
+
+    "WebServerGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : ""},
+        "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
+        "MinSize" : "{{ instances_min_size }}",
+        "MaxSize" : "{{ instances_max_size }}",
+        "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ],
+        "NotificationConfigurations" : [{
+          "TopicARN" : { "Ref" : "NotificationTopic" },
+          "NotificationTypes" : [
+            "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+            "autoscaling:EC2_INSTANCE_TERMINATE",
+            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+           ]
+        }]
+      }
+    },
+
+    "LaunchConfig": {
+      "Type":"AWS::AutoScaling::LaunchConfiguration",
+      "Properties":{
+        "KeyName": "{{ key_pair }}",
+        {% if ami_find.results[0].ami_id %}
+        "ImageId":"{{ ami_find.results[0].ami_id}}",
+        {% elif image.image_id %}
+        "ImageId":"{{ image.image_id}}",
+        {% endif %}
+        "InstanceType": "{{ instance_type }}"
+      }
+    }
+    ,
+    "WebServerScaleUpPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": {"Ref": "WebServerGroup"},
+        "Cooldown":"{{ cool_down }}",
+        "ScalingAdjustment": "1"
+      }
+    },
+
+    "WebServerScaleDownPolicy": {
+      "Type":"AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": { "Ref": "WebServerGroup"},
+        "Cooldown": "{{ cool_down }}",
+        "ScalingAdjustment":"-1"
+      }
+    },
+    "CPUAlarmLow": {
+     "Type": "AWS::CloudWatch::Alarm",
+     "Properties": {
+        "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "70",
+        "AlarmActions": [ { "Ref": "WebServerScaleDownPolicy" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "WebServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      }
+    },
+
+    "ElasticLoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "CrossZone" : "true",
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : "80",
+          "Protocol" : "HTTP"
+        } ],
+        "HealthCheck" : {
+          "Target" : "HTTP:80/",
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "30",
+          "Timeout" : "5"
+        }
+      }
+    },
+
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access and HTTP from the load balancer only",
+        "SecurityGroupIngress" : [ {
+          "IpProtocol" : "tcp",
+          "FromPort" : "22",
+          "ToPort" : "22",
+          "CidrIp" : "0.0.0.0/0"
+        },
+        {
+          "IpProtocol" : "tcp",
+          "FromPort" : "80",
+          "ToPort" : "80",
+          "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.OwnerAlias"]},
+          "SourceSecurityGroupName" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.GroupName"]}
+        } ]
+      }
+    }
+  },
+  "Outputs": {
+    {% if bucket.failed == false %}
+    "WebsiteURL": {
+      "Value": { "Fn::GetAtt": ["S3Bucket", "WebsiteURL"] },
+      "Description": "URL for website hosted on S3"
+    },
+    "S3BucketSecureURL": {
+      "Value": {
+        "Fn::Join": [
+          "", ["https://", { "Fn::GetAtt": ["S3Bucket", "DomainName"] }]
+        ]
+      },
+      "Description": "Name of S3 bucket to hold website content"
+    },
+    {% endif %}
+    "URL" : {
+      "Description" : "The URL of the website",
+      "Value" :  { "Fn::Join" : [ "", [ "http://", { "Fn::GetAtt" : [ "ElasticLoadBalancer", "DNSName" ]}]]}
+    }
+  }
+}

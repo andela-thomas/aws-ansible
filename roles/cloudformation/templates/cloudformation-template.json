@@ -4,25 +4,13 @@
   "Description": "VPC with public and private subnets",
 
   "Resources": {
-    "S3Bucket": {
-      "Type": "AWS::S3::Bucket",
-      "Properties": {
-        "AccessControl": "PublicRead",
-        "BucketName": "{{ bucket_name }}",
-        "WebsiteConfiguration": {
-          "IndexDocument": "index.html",
-          "ErrorDocument": "error.html"
-        }
-      },
-      "DeletionPolicy": "{{ deletion_policy }}"
-    },
-
+    
     "VPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "EnableDnsSupport": "true",
         "EnableDnsHostnames": "true",
-        "CidrBlock": "{{ vpc_cidr_block }}",
+        "CidrBlock": "10.0.0.30/16",
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Public" }
@@ -94,10 +82,10 @@
     "PrivateInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "InstanceType": "{{instance_type}}",
-        "KeyName": "{{ key_pair }}",
-        "ImageId": "{{ image.image_id }}",
-        "NetworkInterfaces": [{
+        "InstanceType": "t2.micro",
+        "KeyName": "thomas-devops",
+                "ImageId":"ami-44e16453",
+                "NetworkInterfaces": [{
           "AssociatePublicIpAddress": "true",
           "DeviceIndex": "0",
           "DeleteOnTermination": "true",
@@ -105,13 +93,14 @@
         }]
       }
     },
-"NotificationTopic": {
+
+    "NotificationTopic": {
       "Type": "AWS::SNS::Topic",
       "Properties": {
         "Subscription": [
           {
-            "Endpoint": "{{ sns_endpoint }}",
-            "Protocol": "{{ protocol }}"
+            "Endpoint": "thomas.nyambati@andela.com",
+            "Protocol": "email"
           }
         ]
       }
@@ -122,8 +111,8 @@
       "Properties" : {
         "AvailabilityZones" : { "Fn::GetAZs" : ""},
         "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
-        "MinSize" : "{{ instances_min_size }}",
-        "MaxSize" : "{{ instances_max_size }}",
+        "MinSize" : "1",
+        "MaxSize" : "2",
         "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ],
         "NotificationConfigurations" : [{
           "TopicARN" : { "Ref" : "NotificationTopic" },
@@ -140,9 +129,9 @@
     "LaunchConfig": {
       "Type":"AWS::AutoScaling::LaunchConfiguration",
       "Properties":{
-        "KeyName": "{{ key_pair }}",
-        "ImageId":"{{ image.image_id }}",
-        "InstanceType": "{{ instance_type }}"
+        "KeyName": "thomas-devops",
+                "ImageId":"ami-44e16453",
+                "InstanceType": "t2.micro"
       }
     }
     ,
@@ -151,7 +140,7 @@
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
         "AutoScalingGroupName": {"Ref": "WebServerGroup"},
-        "Cooldown":"{{ cool_down }}",
+        "Cooldown":"60",
         "ScalingAdjustment": "1"
       }
     },
@@ -161,7 +150,7 @@
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
         "AutoScalingGroupName": { "Ref": "WebServerGroup"},
-        "Cooldown": "{{ cool_down }}",
+        "Cooldown": "60",
         "ScalingAdjustment":"-1"
       }
     },
@@ -227,19 +216,7 @@
     }
   },
   "Outputs": {
-    "WebsiteURL": {
-      "Value": { "Fn::GetAtt": ["S3Bucket", "WebsiteURL"] },
-      "Description": "URL for website hosted on S3"
-    },
-    "S3BucketSecureURL": {
-      "Value": {
-        "Fn::Join": [
-          "", ["https://", { "Fn::GetAtt": ["S3Bucket", "DomainName"] }]
-        ]
-      },
-      "Description": "Name of S3 bucket to hold website content"
-    },
-    "URL" : {
+        "URL" : {
       "Description" : "The URL of the website",
       "Value" :  { "Fn::Join" : [ "", [ "http://", { "Fn::GetAtt" : [ "ElasticLoadBalancer", "DNSName" ]}]]}
     }

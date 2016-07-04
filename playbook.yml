@@ -2,7 +2,7 @@
 # Ansible aws
   - hosts: localhost
     connection: local
-    gather_facts: no
+    gather_facts: true
     roles:
       - cloudformation
 

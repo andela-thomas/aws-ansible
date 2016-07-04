@@ -1,28 +1,37 @@
-# create s3 bucket
 ---
-# - ec2_ami_find:
-#     name: "trime-webserver-instance-Img"
-#     region: "{{ region }}"
-#     sort: name
-#     sort_order: descending
-#     sort_end: 1
-#   register: ami_find
-- name: List bucket
+# find if the image exists
+# - name: Does ami exist?
+#   command: bash -c "aws ec2 describe-images --filters Name=name,Values={{ image_name }} --query 'Images[].{image_id:ImageId}[0]'"
+#   register: image_found
+#   ignore_errors: true
+#   tags:
+#     - find_image
+#
+- name: Find if image {{ image_name }} exist
+  ec2_ami_find:
+    name: "{{ image_name }}"
+    region: "{{ region }}"
+    sort: name
+    sort_order: descending
+    sort_end: 1
+  register: ami_find
+  tags:
+    - find-ami
+
+# Find the if bucket exist
+- name: Find if the bucket {{ bucket_name}} exist
   s3: bucket={{bucket_name}} mode=list
   ignore_errors: true
-  register: listed
-
-- name: Delete Bucket if exists
-  # Delete a bucket and all contents
-  s3: bucket={{bucket_name}} mode=delete
-  when: listed|success
+  register: bucket
   tags:
-    - clean
+    - find-bucket
 
-- name: Launch an ec2 instance
+# Launch an instance from the specified image
+- name: Launch an ec2 instance if the image doesnot exists
+  when: ami_find|failed
   ec2:
-    key_name: "{{key_pair}}"
-    instance_type: "{{instance_type}}"
+    key_name: "{{ key_pair }}"
+    instance_type: "{{ instance_type }}"
     image: "{{ image }}"
     region: "{{ region }}"
     wait: yes
@@ -35,11 +44,11 @@
       db: postgres
   register: ec2
   tags:
-    - launch_instance
-#
-# create image from the instance
+    - launch-instance
 
+# create image from the launched instance
 - name: Create Image from the launched Instance
+  when: ami_find|failed
   ec2_ami:
     instance_id: "{{ ec2.instance_ids[0] }}"
     wait: yes
@@ -49,41 +58,40 @@
       service: database
   register: image
   tags:
-    - create_image
+    - create-image
 
-
+# Terminate the instance created when no image already exist
 - name: Terminate instances that were previously launched
+  when: ami_find|failed
   ec2:
     state: absent
     region: "{{region}}"
     instance_ids: "{{ ec2.instance_ids }}"
   tags:
-    - terminate_instance
+    - terminate-instance
 
+# Compile the Jinja2 template to json format for cloudformation
 - name: Compile template to json.
-  local_action: template src={{ template_dir }}/cloudformation-vpc-template.json.j2 dest={{ template_dir }}/cloudformation-vpc-template.json
+  local_action: template src={{ cloudformation_template }}.j2 dest={{ cloudformation_template }}
 
+# Launch the cloudFormation
 - name: Launch CloudFormation
   cloudformation:
     stack_name: "{{stack_name}}"
     state: present
     region: "{{region}}"
     disable_rollback: true
-    template:  "{{ template_dir }}/cloudformation-vpc-template.json"
+    template:  "{{ cloudformation_template }}"
     tags:
       Stack: "{{stack_name}}"
   tags:
     - cloudformation
   register: vpc
 
-- name: Clean up the local, generated, file
-  file:
-    name: "{{ template_dir }}/cloudformation-vpc-template.json"
-    state: absent
-
-- name: Upload static html page to the bucket
+# upload static site to s3 bucket
+- name: Upload static html page to the {{ bucket_name}} bucket
   s3:
-    bucket: "{{bucket_name}}"
+    bucket: "{{ bucket_name }}"
     object: index.html
     src: /s3/index.html
     encrypt: true
@@ -92,11 +100,3 @@
   tags:
     - site-upload
 
-# - name: Deregister the ami
-#   ec2_ami:
-#     region: " {{ region }}"
-#     image_id: "{{ image.image_id }}"
-#     delete_snapshot: True
-#     state: absent
-#   tags:
-#     - deregister_ami
