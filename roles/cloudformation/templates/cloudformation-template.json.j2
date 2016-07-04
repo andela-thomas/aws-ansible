@@ -39,6 +39,7 @@
     },
 
     {% endif %}
+
     "VPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
@@ -258,7 +259,7 @@
     }
   },
   "Outputs": {
-    {% if not bucket.Contents == false %}
+    {% if not bucket.Contents%}
     "WebsiteURL": {
       "Value": { "Fn::GetAtt": ["S3Bucket", "WebsiteURL"] },
       "Description": "URL for website hosted on S3"
