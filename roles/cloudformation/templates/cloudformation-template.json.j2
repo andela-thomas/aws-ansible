@@ -17,9 +17,27 @@
       },
       "DeletionPolicy": "{{ deletion_policy }}"
     },
+    "SampleBucketPolicy" : {
+      "Type" : "AWS::S3::BucketPolicy",
+      "Properties" : {
+        "Bucket" : {"Ref" : "S3Bucket"},
+        "PolicyDocument": {
+          "Statement":[{
+          "Action":["s3:PutObject"],
+          "Effect":"Deny",
+          "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3Bucket" } , "/*" ]]},
+          "Principal":"*",
+            "Condition":{
+              "StringNotEquals": {
+                "s3:x-amz-server-side-encryption": "AES256"
+               }
+            }
+          }]
+        }
+      }
+    },
 
     {% endif %}
-
     "VPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
