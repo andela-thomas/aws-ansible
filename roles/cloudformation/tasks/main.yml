@@ -1,12 +1,5 @@
 ---
 # find if the image exists
-# - name: Does ami exist?
-#   command: bash -c "aws ec2 describe-images --filters Name=name,Values={{ image_name }} --query 'Images[].{image_id:ImageId}[0]'"
-#   register: image_found
-#   ignore_errors: true
-#   tags:
-#     - find_image
-#
 - name: Find if image {{ image_name }} exist
   ec2_ami_find:
     name: "{{ image_name }}"
