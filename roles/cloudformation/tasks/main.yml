@@ -13,11 +13,13 @@
 
 # Find the if bucket exist
 - name: Find if the bucket {{ bucket_name}} exist
-  s3: bucket={{bucket_name}} mode=list
-  ignore_errors: true
-  register: bucket
+  command: bash -c "aws s3api list-objects --bucket thomas-nyambati-s3-web --output json"
   tags:
     - find-bucket
+  register: result
+
+- set_fact:
+    bucket: "{{ result.stdout }}"
 
 # Launch an instance from the specified image
 - name: Launch an ec2 instance if the image doesnot exists

@@ -4,7 +4,7 @@
   "Description": "VPC with public and private subnets",
 
   "Resources": {
-    {% if bucket.failed == false %}
+    {% if not bucket.Contents %}
     "S3Bucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
@@ -17,6 +17,7 @@
       },
       "DeletionPolicy": "{{ deletion_policy }}"
     },
+
     "SampleBucketPolicy" : {
       "Type" : "AWS::S3::BucketPolicy",
       "Properties" : {
@@ -257,7 +258,7 @@
     }
   },
   "Outputs": {
-    {% if bucket.failed == false %}
+    {% if not bucket.Contents == false %}
     "WebsiteURL": {
       "Value": { "Fn::GetAtt": ["S3Bucket", "WebsiteURL"] },
       "Description": "URL for website hosted on S3"
