@@ -1,2 +1,17 @@
 ---
 # create an auto saling group
+- name: Compile template to json.
+  local_action: template src={{ auto_scaling_template }}.j2 dest={{ auto_scaling_template }}
+
+- name: Launch CloudFormation
+  cloudformation:
+    stack_name: "auto-scaling-group"
+    state: present
+    region: "{{region}}"
+    disable_rollback: true
+    template:  "{{ auto_scaling_template }}"
+    tags:
+      Stack: "auto-scaling-group"
+  tags:
+    - cloudformation
+  register: auto_scaling

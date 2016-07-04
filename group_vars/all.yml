@@ -9,3 +9,11 @@ deletion_policy: Retain
 instance_type: t2.micro
 image: ami-e3e8eb89
 stack_name: thomas-nyambati-cloudformation
+shh_block: 0.0.0.0/0
+sns_endpoint: thomas.nyambati@andela.com
+protocol: email
+instances_min_size: 1
+instances_max_size: 2
+cool_down: 60
+auto_scaling_template: roles/auto-scaling-group/files/auto-scaling-group.json
+cidr_block: 10.0.0.30/16
