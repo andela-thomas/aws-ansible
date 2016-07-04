@@ -14,9 +14,10 @@
 # Find the if bucket exist
 - name: Find if the bucket {{ bucket_name}} exist
   command: bash -c "aws s3api list-objects --bucket thomas-nyambati-s3-web --output json"
+  ignore_errors: true
+  register: result
   tags:
     - find-bucket
-  register: result
 
 - set_fact:
     bucket: "{{ result.stdout }}"
