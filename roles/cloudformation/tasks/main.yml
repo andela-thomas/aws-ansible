@@ -44,7 +44,7 @@
     instance_id: "{{ ec2.instance_ids[0] }}"
     wait: yes
     region: "{{ region }}"
-    name: thomas-nyambati-image
+    name: "{{ image_name }}"
     tags:
       service: database
   register: image
@@ -81,15 +81,6 @@
     name: "{{ template_dir }}/cloudformation-vpc-template.json"
     state: absent
 
-- name: Deregister the ami
-  ec2_ami:
-    region: " {{ region }}"
-    image_id: "{{ image.image_id }}"
-    delete_snapshot: True
-    state: absent
-  tags:
-    - deregister_ami
-
 - name: Upload static html page to the bucket
   s3:
     bucket: "{{bucket_name}}"
@@ -100,3 +91,12 @@
     mode: put
   tags:
     - site-upload
+
+# - name: Deregister the ami
+#   ec2_ami:
+#     region: " {{ region }}"
+#     image_id: "{{ image.image_id }}"
+#     delete_snapshot: True
+#     state: absent
+#   tags:
+#     - deregister_ami
