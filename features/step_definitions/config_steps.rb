@@ -12,15 +12,27 @@ Given(/^I configure it well$/) do
 end
 
 When(/^I Create ami$/) do
-  cmd " ansible -v playbook.yml --tags \" find-ami, find-bucket, launch-instance, create\" "
+  cmd = "ansible-playbook playbook.yml  --tags 'find-bucket,find-ami,launch-instance,create-image, compile'"
   output, error, @status = Open3.capture3 "#{cmd}"
 end
 
 Then(/^It should be successful$/) do
-  expect(@status.success?).to eq(true)
+ expect(@status.success?).to eq(true)
 end
 
 Then(/^Ami should exist$/) do
-  cmd
-  pending # Write code here that turns the phrase above into concrete actions
+  cmd = "ansible-playbook playbook.yml  --tags find-bucket"
+  output, error, status = Open3.capture3 "#{cmd}"
+  expect(status.success?).to eq(true)
+end
+
+
+When(/^I Launch CloudFormation$/) do
+  cmd = "ansible-playbook playbook.yml --tags cloudformation"
+  output, error, @status = Open3.capture3 "#{cmd}"
+end
+
+When(/^I Upload the wesbsite$/) do
+  cmd = "ansible-playbook playbook.yml --tags site-upload"
+  output, error, @status = Open3.capture3 "#{cmd}"
 end

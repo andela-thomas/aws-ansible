@@ -69,6 +69,8 @@
 # Compile the Jinja2 template to json format for cloudformation
 - name: Compile template to json.
   local_action: template src={{ cloudformation_template }}.j2 dest={{ cloudformation_template }}
+  tags:
+    - compile
 
 # Launch the cloudFormation
 - name: Launch CloudFormation
