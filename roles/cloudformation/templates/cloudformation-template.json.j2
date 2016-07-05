@@ -259,7 +259,7 @@
     }
   },
   "Outputs": {
-    {% if not bucket.Contents%}
+    {% if not bucket.Contents %}
     "WebsiteURL": {
       "Value": { "Fn::GetAtt": ["S3Bucket", "WebsiteURL"] },
       "Description": "URL for website hosted on S3"
